@@ -298,7 +298,7 @@ namespace SPMigrationTool
                                                     string fieldName;
                                                     if (metadataMappingsDict.TryGetValue(obj.Key, out fieldName))
                                                     {
-                                                        Debug.WriteLine("========================");
+                                                        Debug.WriteLine("==========================");
                                                         Debug.WriteLine(obj.Key + " mapped to " + metadataMappingsDict[fieldName]);
                                                         Debug.WriteLine("========================");
 
