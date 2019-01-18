@@ -33,13 +33,16 @@ namespace SPMigrationTool
         Excel.Worksheet xlMetadataMappingsSheet;
         Excel.Worksheet xlMigrationReportSheet;
 
-        //Dictiobaries
+        //Dictionaries
         Dictionary<string, string> metadataMappingsDict = new Dictionary<string, string>();
         Dictionary<string, bool> migratedSitesDict = new Dictionary<string, bool>();
 
         //Lists
         List<MigrationSite> sitesForMig = new List<MigrationSite>();
         List<ListMapping> listMappings = new List<ListMapping>();
+
+        //Datatable
+        DataTable dt = new DataTable();
 
         public Form1()
         {
@@ -99,24 +102,37 @@ namespace SPMigrationTool
             //Update UI
             lbStatus.Items.Add("Reading \"ListMappings\" sheet");
             Application.DoEvents();
-            if (CheckIfSheetExists(xlSettingsFile, "ListMappings"))
+
+            CreateListMappings mappingTable = new CreateListMappings();
+            dt = mappingTable.getListMappings();
+            foreach (DataRow row in dt.Rows)
             {
-                xlListMappingsSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlSettingsFile.Worksheets.Item["ListMappings"];
-                Excel.Range xlSiteListMappingsRange = xlListMappingsSheet.UsedRange;
-                for (int rCount = 2; rCount <= xlSiteListMappingsRange.Rows.Count; rCount++)
-                {
-                    ListMapping ls = new ListMapping(
-                        xlListMappingsSheet.Cells[rCount, 1].Value2.ToString(),
-                        xlListMappingsSheet.Cells[rCount, 2].Value2.ToString(),
-                        xlListMappingsSheet.Cells[rCount, 3].Value2.ToString()
-                    );
-                    listMappings.Add(ls);
-                }
+                ListMapping ls = new ListMapping(
+                    row["List Name"].ToString(),
+                    row["List Type"].ToString(),
+                    row["Mapping To List"].ToString()
+                );
+                listMappings.Add(ls);
             }
-            else
-            {
-                //"ListMappings" sheet not found
-            }
+
+            //if (CheckIfSheetExists(xlSettingsFile, "ListMappings"))
+            //{
+            //    xlListMappingsSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlSettingsFile.Worksheets.Item["ListMappings"];
+            //    Excel.Range xlSiteListMappingsRange = xlListMappingsSheet.UsedRange;
+            //    for (int rCount = 2; rCount <= xlSiteListMappingsRange.Rows.Count; rCount++)
+            //    {
+            //        ListMapping ls = new ListMapping(
+            //            xlListMappingsSheet.Cells[rCount, 1].Value2.ToString(),
+            //            xlListMappingsSheet.Cells[rCount, 2].Value2.ToString(),
+            //            xlListMappingsSheet.Cells[rCount, 3].Value2.ToString()
+            //        );
+            //        listMappings.Add(ls);
+            //    }
+            //}
+            //else
+            //{
+            //    //"ListMappings" sheet not found
+            //}
 
 
 
@@ -266,6 +282,36 @@ namespace SPMigrationTool
                                             if (oList.BaseTemplate == 100)
                                             {
                                                 Debug.WriteLine("MIGRATING LIST");
+                                                List destinationList = DestClientContent.Web.Lists.GetByTitle(lm.MappedListname);
+                                                DestClientContent.Load(destinationList.Fields);
+                                                DestClientContent.ExecuteQuery();
+                                                ListItemCreationInformation itemCreateInfo = new ListItemCreationInformation();
+                                                ListItem listItem = destinationList.AddItem(itemCreateInfo);
+
+                                                foreach (var obj in item.FieldValues)
+                                                {
+
+                                                    Debug.WriteLine("   Title   " + obj.Key);
+                                                    Debug.WriteLine("   Value   " + obj.Value);
+
+                                                    //check if field in scope for migration
+                                                    string fieldName;
+                                                    if (metadataMappingsDict.TryGetValue(obj.Key, out fieldName))
+                                                    {
+                                                        Debug.WriteLine("========================");
+                                                        Debug.WriteLine(obj.Key + " mapped to " + metadataMappingsDict[fieldName]);
+                                                        Debug.WriteLine("========================");
+
+
+                                                        listItem[metadataMappingsDict[fieldName]] = obj.Value;
+
+                                                    }
+                                                    listItem["Created"] = item["Created"];
+                                                    listItem.Update();
+                                                    DestClientContent.ExecuteQuery();
+                                                }//end foreach (var obj in item.FieldValues)
+
+                                   
 
                                             }
                                             else if (oList.BaseTemplate == 101)

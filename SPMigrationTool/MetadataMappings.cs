@@ -1732,6 +1732,7 @@ namespace SPMigrationTool
             this.metadataMappingsDict.Add("Reporter Lookup", "textField");
             this.metadataMappingsDict.Add("Comment settings", "textField");
             this.metadataMappingsDict.Add("ZTZCPInternalApprovalComments", "textField");
+            this.metadataMappingsDict.Add("ContentTypeId", "textField");
         }
     }
 }
